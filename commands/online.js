@@ -19,7 +19,6 @@ module.exports = {
                     let onlineData = await fetch(apiOnline).then(response => response.text());
                     const onlineDataParse = JSON.parse(onlineData)
 
-
                     // console.log(formatOnline.login.toString())
 
                 } catch (e) {

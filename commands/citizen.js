@@ -68,8 +68,6 @@ module.exports = {
                             }
                         });
                     });
-
-
                     const citizenEmbed = new Discord.MessageEmbed()
                         .setColor('#8b0000')
                         .setTitle(`${citizenDataParse.login}`)

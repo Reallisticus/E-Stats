@@ -10,7 +10,7 @@ module.exports = {
     description: 'Get citizen buffs or debuffs',
     usage: '[Server] [Citizen name]',
     execute: async(message, args) => {
-        if (!args.length) {
+        if (args.length < 2) {
             message.channel.send('Please provide a server and a username!')
         } else {
             let chosenServer = servers.reduce((r, v) => args[0].includes(v.toLowerCase()) && v || r, '')
@@ -24,140 +24,50 @@ module.exports = {
                     let citizenData = await fetch(apiCitizenByName).then(response => response.text());
                     const citizenDataParse = JSON.parse(citizenData);
                     const citizenURL = `https://${server}.e-sim.org/profile.html?id=${citizenDataParse.id}`;
-
-                    const imageArr = [];
                     const thumbnail = `https://media.discordapp.net/attachments/671877030240976896/711202376064958524/unknown.png`;
+                    const imageArr = [];
+                    let buffs = '';
+                    let debuffs = '';
+                    rp(citizenURL).then(function(html) {
+                        $('div .profile-row img', html).each(function(a, b) {
+                            const image = $(this).attr('src');
+                            if (image && image.match('cdn.e-sim.org//img/specialItems/')) {
+                                imageArr.push(image);
+                            } else if (!image) {
+                                message.channel.send('Player does not currently have any buffs or debuffs!')
+                            }
+                        });
+                        const regex = '//cdn';
+                        const resArr = imageArr.map(function(x) {
+                            return x.replace(regex, 'https://cdn');
+                        });
+                        resArr.forEach((buff, i) => {
+                            let name = buff.split("specialItems/")[1].split("_")[0];
+                            let type = buff.split("_")[1].split(".")[0];
 
-                    rp(citizenURL)
-                        .then(function(html) {
-                            $('div .profile-row img', html).each(function(a, b) {
-                                const image = $(this).attr('src');
-                                if (image && image.match('cdn.e-sim.org//img/specialItems/')) {
-                                    imageArr.push(image);
-                                } else if (!image) {
-                                    message.channel.send('Player does not currently have any buffs or debuffs!')
-                                }
-                            });
-                            const regex = '//cdn';
-                            const resArr = imageArr.map(function(x) {
-                                return x.replace(regex, 'https://cdn');
-                            });
+                            if (name == "resistance") name = "sewer";
 
-                            let posResults = resArr.filter(x => x.toLowerCase().includes("positive"));
-                            let roidsBuff = posResults.filter(x => x.toLowerCase().includes("steroids"));
-                            let tankBuff = posResults.filter(x => x.toLowerCase().includes("tank"));
-                            let bunkerBuff = posResults.filter(x => x.toLowerCase().includes("bunker"));
-                            let sewerBuff = posResults.filter(x => x.toLowerCase().includes("resistance"));
-                            let spaBuff = posResults.filter(x => x.toLowerCase().includes("spa"));
-                            let vacBuff = posResults.filter(x => x.toLowerCase().includes("vacations"));
+                            if (type == "positive" && i == 0) buffs += (name.charAt(0).toUpperCase() + name.slice(1))
+                            if (type == "positive" && i != 0) buffs += (", " + name.charAt(0).toUpperCase() + name.slice(1))
 
-                            let negResults = resArr.filter(x => x.toLowerCase().includes("negative"));
-                            let tankDebuff = negResults.filter(x => x.toLowerCase().includes("tank"));
-                            let roidsDebuff = negResults.filter(x => x.toLowerCase().includes("steroids"));
-                            let bunkerDebuff = negResults.filter(x => x.toLowerCase().includes("bunker"));
-                            let sewerDebuff = negResults.filter(x => x.toLowerCase().includes("resistance"));;
-                            let spaDebuff = negResults.filter(x => x.toLowerCase().includes("spa"));
-                            let vacDebuff = negResults.filter(x => x.toLowerCase().includes("vacations"));
-
-                            // if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length > 0 &&
-                            //     sewerBuff.length > 0 && spaBuff.length > 0 && vacBuff.length > 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids, Bunker, Sewer, Spa, Vac`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length > 0 &&
-                            //     sewerBuff.length > 0 && spaBuff.length > 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids, Bunker, Sewer, Spa`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length > 0 &&
-                            //     sewerBuff.length == 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids, Bunker`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length > 0 &&
-                            //     sewerBuff.length > 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids, Bunker, Sewer`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length > 0 &&
-                            //     sewerBuff.length == 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids, Bunker`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length > 0 && bunkerBuff.length == 0 &&
-                            //     sewerBuff.length == 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank, Steroids`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length > 0 && tankBuff.length == 0 && bunkerBuff.length == 0 &&
-                            //     sewerBuff.length == 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Steroids`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // } else if (roidsBuff.length == 0 && tankBuff.length > 0 && bunkerBuff.length == 0 &&
-                            //     sewerBuff.length == 0 && spaBuff.length == 0 && vacBuff.length == 0) {
-                            //     const embed = new Discord.MessageEmbed()
-                            //         .setColor('#008000')
-                            //         .setTitle(`${citizenDataParse.login}`)
-                            //         .setURL(`${citizenURL}`)
-                            //         .setThumbnail(thumbnail)
-                            //         .addField('\u200b', '\u200b')
-                            //         .addField(`🟢 **Buffs:**`, `Tank`)
-                            //         .setTimestamp();
-                            //     message.channel.send(embed)
-                            // }
-
-                            // const embed = new Discord.MessageEmbed()
-                            //     .setTitle('test')
-                            //     .attachFiles(['./utils/buff/steroids_positive.png'])
-                            //     .setImage('attachment://steroids_positive.png');
-
-                            // console.log(`${roidsBuff} ${tankBuff}`)
+                            if (type == "negative" && i == 0) debuffs += (name.charAt(0).toUpperCase() + name.slice(1))
+                            if (type == "negative" && i != 0) debuffs += (", " + name.charAt(0).toUpperCase() + name.slice(1))
                         });
 
+                        let def = "None";
 
+                        const buffsEmbed = new Discord.MessageEmbed()
+                            .setColor('#8b0000')
+                            .setTitle(`${citizenDataParse.login}`)
+                            .setURL(`${citizenURL}`)
+                            .setThumbnail(thumbnail)
+                            .addField('\u200b', '\u200b')
+                            .addField(`🟢 **Buffs:**`, `${buffs || def}`)
+                            .addField('\u200b', '\u200b')
+                            .addField('🔴 **Debuffs:**', `${debuffs || def}`)
+                            .setTimestamp();
+                        message.channel.send(buffsEmbed);
+                    });
                 } catch (e) {
                     console.log(e)
                     message.channel.send('Whoops, something went wrong, try again!')

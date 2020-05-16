@@ -1,6 +1,10 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
+const $ = require('cheerio');
+const rp = require('request-promise');
 const querystring = require('querystring');
+const download = require('image-downloader')
+const Str = require('@supercharge/strings')
 const { servers } = require('../utils/servers.json');
 
 module.exports = {
@@ -42,10 +46,36 @@ module.exports = {
                     let countryData = await fetch(apiCountry).then(response => response.text());
                     const countryDataParse = JSON.parse(countryData);
                     const formatCountry = countryDataParse.reduce((acc, country) => (acc[country.id] = country, acc), {});
+                    const random = Str.random();
+                    rp(citizenURL).then(function(html) {
+                        $('#profileTable > tbody > tr > td:nth-child(1) > div:nth-child(1) > img', html).each(function(a, b) {
+                            const image = $(this).attr('src');
+                            if (image) {
+                                const options = {
+                                    url: image,
+                                    rejectUnauthorized: false,
+                                    dest: `./utils/avatars/${random}.png`
+                                }
+
+                                download.image(options)
+                                    .then(({ filename }) => {
+                                        console.log('Saved to', filename)
+                                    })
+                                    .catch((e) => console.error(e))
+
+                            } else if (!image) {
+                                message.channel.send('Player does not have an avatar!')
+                            }
+                        });
+                    });
+
+
                     const citizenEmbed = new Discord.MessageEmbed()
                         .setColor('#8b0000')
                         .setTitle(`${citizenDataParse.login}`)
                         .setURL(`${citizenURL}`)
+                        .attachFiles([`./utils/avatars/${random}.png`])
+                        .setThumbnail(`attachment://${random}.png`)
                         .addField('*Citizenship:*', citizenDataParse.citizenship, true)
                         .addField('*Level*', citizenDataParse.level, true)
                         .addField('*Damage:*', `${parseInt(citizenDataParse.totalDamage).toLocaleString()} dmg.`, true)
@@ -60,7 +90,7 @@ module.exports = {
                         .addField('*Current region:*', `[${formatRegion[regionID].name}](${specificRegionURL}) / ${formatCountry[countryID].name}`, true)
                         .addField('\u200b', '\u200b')
                         .setTimestamp();
-                    message.channel.send(citizenEmbed);
+                    setTimeout(function() { message.channel.send(citizenEmbed) }, 3000)
                 } catch (e) {
                     console.error(e)
                     message.channel.send('Whoops, something went wrong, try again please!')
